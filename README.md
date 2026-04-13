@@ -1,7 +1,7 @@
 # 🚚 Fret-DZ — Extranet Logistique B2B
 
-> Projet de Fin de Module · Architecture Cloud & Vibe Programming  
-> Stack : **Next.js 14** · **Supabase** · **Vercel**
+> Projet de Fin de Module (SI)· Architecture Cloud & Vibe Programming  
+> Stack : **express.js** · **Supabase** ·**React** ·  **Vercel**
 
 🔗 **App en production :** `STILL WORKING ON IT`  
 🐙 **Dépôt GitHub :** `https://github.com/itsmeisraa/fret-dz`
