@@ -7,13 +7,6 @@
 🐙 **Dépôt GitHub :** `https://github.com/itsmeisraa/fret-dz`
 
 ---
-
-## 👥 Binôme
-
-still working on it
-
----
-
 ## 🗺️ Mapping du Thème
 
 **Thème choisi :** Logistique B2B — *"Fret-DZ"*
