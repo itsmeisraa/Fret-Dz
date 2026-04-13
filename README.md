@@ -3,20 +3,14 @@
 > Projet de Fin de Module · Architecture Cloud & Vibe Programming  
 > Stack : **Next.js 14** · **Supabase** · **Vercel**
 
-🔗 **App en production :** `https://fret-dz.vercel.app`  
-🐙 **Dépôt GitHub :** `https://github.com/VOTRE_USER/fret-dz`
+🔗 **App en production :** `STILL WORKING ON IT`  
+🐙 **Dépôt GitHub :** `https://github.com/itsmeisraa/fret-dz`
 
 ---
 
 ## 👥 Binôme
 
-| Étudiant | Email institutionnel |
-|---|---|
-| Prénom NOM 1 | p.nom1@estin.dz |
-| Prénom NOM 2 | p.nom2@estin.dz |
-
-**Groupe de TD :** G0X  
-**Compte de test :** `test@fret-dz.com` / `Test1234!`
+still working on it
 
 ---
 
@@ -67,7 +61,7 @@ Un data center local a une capacité **fixe et rigide** : si on déploie 4 serve
 
 ```bash
 # 1. Cloner le repo
-git clone https://github.com/VOTRE_USER/fret-dz.git
+git clone https://github.com/itsmeisraa/fret-dz.git
 cd fret-dz
 
 # 2. Installer les dépendances
