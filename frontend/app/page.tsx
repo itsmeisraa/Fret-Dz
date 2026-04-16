@@ -1,15 +1,16 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import Link from "next/link"
-import Image from "next/image"
-import { useRouter } from "next/navigation"
-import { motion, AnimatePresence } from "framer-motion"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { FieldGroup, Field, FieldLabel } from "@/components/ui/field"
+import { useState } from "react";
+import Link from "next/link";
+import Image from "next/image";
+import { useRouter } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Navbar } from "@/components/Navbar";
+import { FieldGroup, Field, FieldLabel } from "@/components/ui/field";
 import { 
   Truck, 
   Package, 
@@ -17,18 +18,16 @@ import {
   Shield, 
   Clock, 
   FileText,
-  Menu,
-  X,
   ChevronRight,
   Upload,
   Building2,
   ChevronDown,
-} from "lucide-react"
+} from "lucide-react";
 
 const fadeIn = {
   hidden: { opacity: 0, y: 20 },
   visible: { opacity: 1, y: 0 }
-}
+};
 
 const staggerContainer = {
   hidden: { opacity: 0 },
@@ -38,35 +37,32 @@ const staggerContainer = {
       staggerChildren: 0.1
     }
   }
-}
+};
 
 const slideIn = {
   hidden: { opacity: 0, x: -20 },
   visible: { opacity: 1, x: 0 }
-}
+};
 
 export default function LandingPage() {
-  const router = useRouter()
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const [authMode, setAuthMode] = useState<"login" | "register">("login")
-  const [registerType, setRegisterType] = useState<"commercant" | "camionneur">("commercant")
-  const [expandedFaq, setExpandedFaq] = useState<number | null>(null)
+  const router = useRouter();
+  const [authMode, setAuthMode] = useState<"login" | "register">("login");
+  const [registerType, setRegisterType] = useState<"commercant" | "camionneur">("commercant");
+  const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
 
   const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault()
-    // In a real app, we'd authenticate here. For demo, redirect based on a default
-    router.push("/dashboard/commercant")
-  }
+    e.preventDefault();
+    router.push("/dashboard/commercant");
+  };
 
   const handleRegister = (e: React.FormEvent) => {
-    e.preventDefault()
-    // In a real app, we'd create account here. For demo, redirect to appropriate dashboard
+    e.preventDefault();
     if (registerType === "commercant") {
-      router.push("/dashboard/commercant")
+      router.push("/dashboard/commercant");
     } else {
-      router.push("/dashboard/camionneur")
+      router.push("/dashboard/camionneur");
     }
-  }
+  };
 
   const faqs = [
     {
@@ -85,82 +81,11 @@ export default function LandingPage() {
       q: "What is a Bon de Livraison?",
       a: "The Bon de Livraison (Delivery Note) is the official document confirming successful delivery. Carriers upload a signed copy through the app, which is stored in your documents section."
     }
-  ]
+  ];
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <motion.header 
-        initial={{ y: -100 }}
-        animate={{ y: 0 }}
-        transition={{ type: "spring", stiffness: 100, damping: 20 }}
-        className="sticky top-0 z-50 border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80"
-      >
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-          <motion.div 
-            className="flex items-center gap-2"
-            whileHover={{ scale: 1.02 }}
-          >
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary">
-              <Truck className="h-5 w-5 text-primary-foreground" />
-            </div>
-            <span className="text-xl font-bold text-foreground">Fret-Dz</span>
-          </motion.div>
-
-          {/* Desktop Navigation */}
-          <nav className="hidden items-center gap-8 md:flex">
-            <Link href="#how-it-works" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
-              How it Works
-            </Link>
-            <Link href="#faq" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
-              FAQ
-            </Link>
-            <Link href="#auth" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
-              Login
-            </Link>
-            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-              <Button asChild className="bg-accent text-accent-foreground hover:bg-accent/90">
-                <Link href="#auth">Get Started</Link>
-              </Button>
-            </motion.div>
-          </nav>
-
-          {/* Mobile Menu Button */}
-          <button
-            className="inline-flex items-center justify-center rounded-md p-2 text-muted-foreground md:hidden"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          >
-            {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-          </button>
-        </div>
-
-        {/* Mobile Navigation */}
-        <AnimatePresence>
-          {mobileMenuOpen && (
-            <motion.div 
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
-              className="overflow-hidden border-t bg-card md:hidden"
-            >
-              <nav className="flex flex-col gap-4 px-4 py-4">
-                <Link href="#how-it-works" className="text-sm font-medium text-muted-foreground">
-                  How it Works
-                </Link>
-                <Link href="#faq" className="text-sm font-medium text-muted-foreground">
-                  FAQ
-                </Link>
-                <Link href="#auth" className="text-sm font-medium text-muted-foreground">
-                  Login
-                </Link>
-                <Button asChild className="bg-accent text-accent-foreground">
-                  <Link href="#auth">Get Started</Link>
-                </Button>
-              </nav>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </motion.header>
+      <Navbar />
 
       {/* Hero Section */}
       <section className="relative overflow-hidden">
@@ -185,14 +110,14 @@ export default function LandingPage() {
             <motion.h1 
               variants={fadeIn}
               transition={{ duration: 0.6 }}
-              className="text-balance text-4xl font-bold tracking-tight text-primary-foreground sm:text-5xl lg:text-6xl"
+              className="text-balance text-5xl font-bold tracking-tight text-primary-foreground sm:text-6xl lg:text-7xl xl:text-8xl"
             >
               Smarter Logistics for Algeria
             </motion.h1>
             <motion.p 
               variants={fadeIn}
               transition={{ duration: 0.6, delay: 0.1 }}
-              className="mt-6 text-pretty text-lg text-primary-foreground/90 sm:text-xl"
+              className="mt-6 text-pretty text-xl text-primary-foreground/90 sm:text-2xl lg:text-3xl"
             >
               Efficient B2B shipments connecting merchants and carriers across the nation. Real-time tracking, transparent pricing, and professional service.
             </motion.p>
@@ -427,7 +352,6 @@ export default function LandingPage() {
                     </TabsContent>
 
                     <TabsContent value="register" className="mt-6">
-                      {/* Register Type Selection */}
                       <div className="mb-6 grid grid-cols-2 gap-3">
                         <motion.button
                           type="button"
@@ -621,5 +545,5 @@ export default function LandingPage() {
         </div>
       </footer>
     </div>
-  )
+  );
 }
