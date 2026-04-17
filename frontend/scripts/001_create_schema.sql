@@ -207,6 +207,7 @@ CREATE POLICY "Anyone can view ratings" ON public.ratings FOR SELECT USING (true
 CREATE POLICY "Users can create ratings" ON public.ratings FOR INSERT WITH CHECK (auth.uid() = rated_by);
 
 -- Create trigger function for auto-creating profile on signup
+-- Create a function to handle new user signup
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER
 LANGUAGE plpgsql
@@ -217,14 +218,22 @@ BEGIN
   INSERT INTO public.profiles (id, email, full_name, phone, role, company_name)
   VALUES (
     NEW.id,
-    NEW.email,
-    COALESCE(NEW.raw_user_meta_data ->> 'full_name', NULL),
-    COALESCE(NEW.raw_user_meta_data ->> 'phone', NULL),
+    COALESCE(NEW.email, ''),
+    COALESCE(NEW.raw_user_meta_data ->> 'full_name', ''),
+    COALESCE(NEW.raw_user_meta_data ->> 'phone', ''),
     COALESCE(NEW.raw_user_meta_data ->> 'role', 'commercant'),
-    COALESCE(NEW.raw_user_meta_data ->> 'company_name', NULL)
+    COALESCE(NEW.raw_user_meta_data ->> 'company_name', '')
   )
-  ON CONFLICT (id) DO NOTHING;
+  ON CONFLICT (id) DO UPDATE SET
+    email = EXCLUDED.email,
+    full_name = EXCLUDED.full_name,
+    phone = EXCLUDED.phone,
+    role = EXCLUDED.role,
+    company_name = EXCLUDED.company_name;
   
+  RETURN NEW;
+EXCEPTION WHEN OTHERS THEN
+  RAISE WARNING 'Error in handle_new_user trigger: %', SQLERRM;
   RETURN NEW;
 END;
 $$;

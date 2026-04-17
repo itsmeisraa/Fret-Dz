@@ -1,10 +1,7 @@
-"use client"
-
-import { use } from "react"
+import { createClient } from "@/lib/supabase/server"
 import Link from "next/link"
-import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import {
@@ -19,519 +16,362 @@ import {
   FileText,
   Download,
   Clock,
-  CheckCircle2,
-  Circle,
   Navigation,
   Scale,
-  Box,
+  CheckCircle2,
+  Star,
 } from "lucide-react"
-
-const fadeIn = {
-  hidden: { opacity: 0, y: 20 },
-  visible: { opacity: 1, y: 0 }
-}
-
-const staggerContainer = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.1
-    }
-  }
-}
-
-// Mock shipment data
-const getShipmentData = (id: string) => ({
-  id,
-  status: "in-transit",
-  createdAt: "Apr 14, 2026 - 14:00",
-  route: {
-    origin: {
-      city: "Algiers",
-      address: "Zone Industrielle Oued Smar, Lot 15",
-      coordinates: "36.7538° N, 3.0588° E",
-    },
-    destination: {
-      city: "Oran",
-      address: "Port d'Oran, Entrepôt B7",
-      coordinates: "35.6969° N, 0.6331° W",
-    },
-    waypoints: ["Blida", "Chlef", "Relizane"],
-    distance: "430 km",
-    estimatedDuration: "5h 30m",
-  },
-  payload: {
-    type: "General Cargo",
-    description: "Industrial machinery parts",
-    weight: "12 tonnes",
-    volume: "45 m³",
-    specialInstructions: "Handle with care. Keep dry.",
-  },
-  shipper: {
-    name: "Entreprise Sarl",
-    nif: "000012345678901",
-    contact: "Ahmed Bouzid",
-    phone: "+213 555 123 456",
-    email: "contact@entreprise-sarl.dz",
-  },
-  carrier: {
-    name: "Mohamed Benali",
-    vehicleType: "Semi-Trailer (40T)",
-    plateNumber: "00123-101-16",
-    phone: "+213 555 987 654",
-    email: "m.benali@email.dz",
-  },
-  timeline: [
-    {
-      event: "Shipment Created",
-      timestamp: "Apr 14, 2026 - 14:00",
-      actor: "Entreprise Sarl",
-      completed: true,
-    },
-    {
-      event: "Carrier Assigned",
-      timestamp: "Apr 14, 2026 - 16:30",
-      actor: "System",
-      completed: true,
-    },
-    {
-      event: "Picked Up",
-      timestamp: "Apr 15, 2026 - 09:00",
-      actor: "Mohamed Benali",
-      completed: true,
-    },
-    {
-      event: "In Transit",
-      timestamp: "Apr 15, 2026 - 09:15",
-      actor: "Mohamed Benali",
-      completed: true,
-    },
-    {
-      event: "Arrived at Destination",
-      timestamp: null,
-      actor: null,
-      completed: false,
-    },
-    {
-      event: "Delivered",
-      timestamp: null,
-      actor: null,
-      completed: false,
-    },
-  ],
-  documents: [
-    {
-      name: "Scan de Carte d'Identité du Chauffeur",
-      type: "ID Document",
-      uploadedAt: "Apr 14, 2026",
-      url: "#",
-    },
-    {
-      name: "Facture Commerciale",
-      type: "Invoice",
-      uploadedAt: "Apr 14, 2026",
-      url: "#",
-    },
-  ],
-})
+import { redirect } from "next/navigation"
+import { acceptCarrier } from "@/lib/actions/shipment"
 
 const statusConfig: Record<string, { label: string; color: string; bgColor: string }> = {
   created: { label: "Created", color: "text-muted-foreground", bgColor: "bg-muted" },
+  pending: { label: "Pending", color: "text-amber-700", bgColor: "bg-amber-100" },
   assigned: { label: "Assigned", color: "text-blue-700", bgColor: "bg-blue-100" },
-  "in-transit": { label: "In Transit", color: "text-primary", bgColor: "bg-primary/10" },
+  picked_up: { label: "Picked Up", color: "text-indigo-700", bgColor: "bg-indigo-100" },
+  in_transit: { label: "In Transit", color: "text-primary", bgColor: "bg-primary/10" },
+  arrived: { label: "Arrived", color: "text-green-700", bgColor: "bg-green-100" },
   delivered: { label: "Delivered", color: "text-green-700", bgColor: "bg-green-100" },
+  cancelled: { label: "Cancelled", color: "text-destructive", bgColor: "bg-destructive/10" },
 }
 
-export default function ShipmentDetailPage({
+export default async function ShipmentDetailPage({
   params,
 }: {
   params: Promise<{ id: string }>
 }) {
-  const { id } = use(params)
-  const shipment = getShipmentData(id)
-  const status = statusConfig[shipment.status]
+  const { id } = await params
+  const supabase = await createClient()
+
+  // Authenticated User
+  const { data: { user } } = await supabase.auth.getUser()
+
+  // 1. Fetch Shipment with profiles
+  const { data: shipment, error } = await supabase
+    .from('shipments')
+    .select(`
+      *,
+      commercant:profiles!shipments_commercant_id_fkey(full_name, company_name, phone, email, company_address),
+      camionneur:profiles!shipments_camionneur_id_fkey(full_name, phone, email),
+      vehicle:vehicles(*)
+    `)
+    .eq('id', id)
+    .single()
+
+  if (error || !shipment) {
+    return redirect('/dashboard')
+  }
+
+  // 2. Fetch Events
+  const { data: events } = await supabase
+    .from('shipment_events')
+    .select('*')
+    .eq('shipment_id', id)
+    .order('created_at', { ascending: false })
+
+  // 3. Fetch Documents
+  const { data: documents } = await supabase
+    .from('documents')
+    .select('*')
+    .eq('shipment_id', id)
+
+  // 4. Fetch Applications (If user is the owner)
+  const isOwner = user?.id === shipment.commercant_id
+  let applications = []
+  if (isOwner && shipment.status === 'pending') {
+    const { data: apps } = await supabase
+      .from('shipment_applications')
+      .select('*, carrier:profiles!shipment_applications_camionneur_id_fkey(full_name, phone, rating:ratings!ratings_rated_user_fkey(rating))')
+      .eq('shipment_id', id)
+    applications = apps || []
+  }
+
+  const status = statusConfig[shipment.status] || statusConfig.created
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background pb-12">
       {/* Header Banner */}
-      <motion.div 
-        className={`${status.bgColor} border-b`}
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4 }}
-      >
+      <div className={`${status.bgColor} border-b`}>
         <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-4">
-              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                <Button variant="ghost" size="icon" asChild className="shrink-0">
-                  <Link href="/dashboard/commercant">
-                    <ArrowLeft className="h-5 w-5" />
-                    <span className="sr-only">Back</span>
-                  </Link>
-                </Button>
-              </motion.div>
+              <Button variant="ghost" size="icon" asChild className="shrink-0">
+                <Link href="/dashboard">
+                  <ArrowLeft className="h-5 w-5" />
+                  <span className="sr-only">Back</span>
+                </Link>
+              </Button>
               <div>
-                <h1 className="text-2xl font-bold text-foreground">Shipment #{id}</h1>
-                <p className="text-sm text-muted-foreground">Created {shipment.createdAt}</p>
+                <h1 className="text-2xl font-bold text-foreground">Shipment #{shipment.reference_number || id.slice(0, 8)}</h1>
+                <p className="text-sm text-muted-foreground">Created {new Date(shipment.created_at).toLocaleDateString()}</p>
               </div>
             </div>
-            <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ type: "spring", stiffness: 300, delay: 0.2 }}
-            >
-              <Badge className={`${status.bgColor} ${status.color} border-0 px-4 py-1.5 text-sm font-semibold`}>
-                {status.label}
-              </Badge>
-            </motion.div>
+            <Badge className={`${status.bgColor} ${status.color} border-0 px-4 py-1.5 text-sm font-semibold`}>
+              {status.label}
+            </Badge>
           </div>
         </div>
-      </motion.div>
+      </div>
 
       {/* Main Content */}
-      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-        <div className="grid gap-6 lg:grid-cols-3">
+      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        <div className="grid gap-8 lg:grid-cols-3">
           {/* Left Column - Main Info */}
-          <motion.div 
-            className="space-y-6 lg:col-span-2"
-            initial="hidden"
-            animate="visible"
-            variants={staggerContainer}
-          >
+          <div className="space-y-8 lg:col-span-2">
+            
+            {/* Applications Section (Only for Merchant when status is pending) */}
+            {isOwner && shipment.status === 'pending' && applications.length > 0 && (
+               <Card className="border-2 border-accent/20 bg-accent/5 overflow-hidden">
+                  <CardHeader className="bg-accent/10 border-b border-accent/10">
+                    <CardTitle className="text-xl flex items-center gap-2 text-accent-foreground">
+                       <CheckCircle2 className="h-5 w-5" />
+                       Carrier Applications ({applications.length})
+                    </CardTitle>
+                    <CardDescription>Review and accept a carrier for this shipment</CardDescription>
+                  </CardHeader>
+                  <CardContent className="p-0">
+                    <div className="divide-y">
+                       {applications.map((app) => (
+                          <div key={app.id} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-white/50 transition-colors">
+                             <div className="flex items-start gap-4">
+                                <div className="h-12 w-12 rounded-full bg-accent/10 flex items-center justify-center font-bold text-accent">
+                                   {app.carrier?.full_name?.charAt(0)}
+                                </div>
+                                <div>
+                                   <p className="font-bold text-lg">{app.carrier?.full_name}</p>
+                                   <div className="flex items-center gap-2 mt-1">
+                                      <div className="flex items-center text-amber-500">
+                                         <Star className="h-3 w-3 fill-current" />
+                                         <span className="text-xs font-bold ml-1">4.8</span>
+                                      </div>
+                                      <Separator orientation="vertical" className="h-3" />
+                                      <p className="text-xs text-muted-foreground">Price: <span className="text-foreground font-bold">{app.proposed_price || 'Standard'} DZD</span></p>
+                                   </div>
+                                </div>
+                             </div>
+                             <form action={async () => {
+                                'use server'
+                                await acceptCarrier(shipment.id, app.id, app.camionneur_id, app.vehicle_id)
+                             }}>
+                                <Button type="submit" size="sm" className="bg-accent hover:bg-accent/90">
+                                   Accept Carrier
+                                </Button>
+                             </form>
+                          </div>
+                       ))}
+                    </div>
+                  </CardContent>
+               </Card>
+            )}
+
             {/* Route Information */}
-            <motion.div variants={fadeIn}>
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Navigation className="h-5 w-5 text-primary" />
-                    Route Information
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="grid gap-6 sm:grid-cols-2">
-                    <motion.div 
-                      className="rounded-lg border bg-muted/30 p-4"
-                      whileHover={{ scale: 1.02 }}
-                      transition={{ type: "spring", stiffness: 300 }}
-                    >
-                      <div className="flex items-start gap-3">
-                        <motion.div 
-                          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10"
-                          whileHover={{ rotate: 10 }}
-                        >
-                          <MapPin className="h-5 w-5 text-primary" />
-                        </motion.div>
-                        <div>
-                          <p className="text-xs font-medium uppercase text-muted-foreground">Origin</p>
-                          <p className="font-semibold text-foreground">{shipment.route.origin.city}</p>
-                          <p className="mt-1 text-sm text-muted-foreground">{shipment.route.origin.address}</p>
-                        </div>
+            <Card className="border-none shadow-md">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Navigation className="h-5 w-5 text-primary" />
+                  Route Information
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid gap-6 sm:grid-cols-2">
+                  <div className="rounded-lg border bg-muted/30 p-4">
+                    <div className="flex items-start gap-3">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10">
+                        <MapPin className="h-5 w-5 text-primary" />
                       </div>
-                    </motion.div>
-                    <motion.div 
-                      className="rounded-lg border bg-muted/30 p-4"
-                      whileHover={{ scale: 1.02 }}
-                      transition={{ type: "spring", stiffness: 300 }}
-                    >
-                      <div className="flex items-start gap-3">
-                        <motion.div 
-                          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-accent/10"
-                          whileHover={{ rotate: 10 }}
-                        >
-                          <MapPin className="h-5 w-5 text-accent" />
-                        </motion.div>
-                        <div>
-                          <p className="text-xs font-medium uppercase text-muted-foreground">Destination</p>
-                          <p className="font-semibold text-foreground">{shipment.route.destination.city}</p>
-                          <p className="mt-1 text-sm text-muted-foreground">{shipment.route.destination.address}</p>
-                        </div>
+                      <div>
+                        <p className="text-[10px] font-bold uppercase text-muted-foreground tracking-tighter">Origin</p>
+                        <p className="font-bold text-foreground">{shipment.origin_city}, {shipment.origin_wilaya}</p>
+                        <p className="mt-1 text-sm text-muted-foreground">{shipment.origin_address}</p>
                       </div>
-                    </motion.div>
+                    </div>
                   </div>
+                  <div className="rounded-lg border bg-muted/30 p-4">
+                    <div className="flex items-start gap-3">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-accent/10">
+                        <MapPin className="h-5 w-5 text-accent" />
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-bold uppercase text-muted-foreground tracking-tighter">Destination</p>
+                        <p className="font-bold text-foreground">{shipment.destination_city}, {shipment.destination_wilaya}</p>
+                        <p className="mt-1 text-sm text-muted-foreground">{shipment.destination_address}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
 
-                  <div className="flex flex-wrap items-center gap-4 text-sm">
-                    <div className="flex items-center gap-2">
-                      <span className="text-muted-foreground">Key Waypoints:</span>
-                      <span className="font-medium text-foreground">{shipment.route.waypoints.join(" → ")}</span>
-                    </div>
-                    <Separator orientation="vertical" className="h-4" />
-                    <div className="flex items-center gap-2">
-                      <span className="text-muted-foreground">Distance:</span>
-                      <span className="font-medium text-foreground">{shipment.route.distance}</span>
-                    </div>
-                    <Separator orientation="vertical" className="h-4" />
-                    <div className="flex items-center gap-2">
-                      <span className="text-muted-foreground">Est. Duration:</span>
-                      <span className="font-medium text-foreground">{shipment.route.estimatedDuration}</span>
-                    </div>
+                <div className="flex flex-wrap items-center gap-6 pt-4 text-sm font-medium">
+                   <div className="flex items-center gap-2">
+                    <Box className="h-4 w-4 text-primary" />
+                    <span>Type: {shipment.cargo_type}</span>
                   </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-
-            {/* Payload Details */}
-            <motion.div variants={fadeIn}>
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Package className="h-5 w-5 text-primary" />
-                    Payload Details
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid gap-4 sm:grid-cols-3">
-                    {[
-                      { icon: Box, label: "Type", value: shipment.payload.type },
-                      { icon: Scale, label: "Weight", value: shipment.payload.weight },
-                      { icon: Package, label: "Volume", value: shipment.payload.volume },
-                    ].map((item, index) => (
-                      <motion.div 
-                        key={item.label}
-                        className="flex items-center gap-3"
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 0.3 + index * 0.1 }}
-                      >
-                        <motion.div 
-                          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10"
-                          whileHover={{ scale: 1.1, rotate: 5 }}
-                        >
-                          <item.icon className="h-5 w-5 text-primary" />
-                        </motion.div>
-                        <div>
-                          <p className="text-xs text-muted-foreground">{item.label}</p>
-                          <p className="font-medium text-foreground">{item.value}</p>
-                        </div>
-                      </motion.div>
-                    ))}
+                  <div className="flex items-center gap-2">
+                    <Scale className="h-4 w-4 text-primary" />
+                    <span>Weight: {shipment.weight_kg} kg</span>
                   </div>
-                  <Separator className="my-4" />
-                  <div>
-                    <p className="text-sm text-muted-foreground">{shipment.payload.description}</p>
-                    {shipment.payload.specialInstructions && (
-                      <motion.div 
-                        className="mt-3 rounded-md bg-accent/10 p-3"
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ delay: 0.5 }}
-                      >
-                        <p className="text-sm font-medium text-accent">Special Instructions:</p>
-                        <p className="text-sm text-foreground">{shipment.payload.specialInstructions}</p>
-                      </motion.div>
-                    )}
+                  <div className="flex items-center gap-2">
+                    <Clock className="h-4 w-4 text-primary" />
+                    <span>Reference: {shipment.reference_number}</span>
                   </div>
-                </CardContent>
-              </Card>
-            </motion.div>
+                </div>
+              </CardContent>
+            </Card>
 
             {/* Parties Involved */}
-            <motion.div variants={fadeIn}>
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <User className="h-5 w-5 text-primary" />
-                    Parties Involved
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid gap-6 sm:grid-cols-2">
-                    {/* Shipper */}
-                    <motion.div 
-                      className="rounded-lg border p-4"
-                      whileHover={{ y: -4 }}
-                      transition={{ type: "spring", stiffness: 300 }}
-                    >
-                      <div className="mb-3 flex items-center gap-2">
-                        <Building2 className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-xs font-medium uppercase text-muted-foreground">Shipper</span>
+            <Card className="border-none shadow-md">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <User className="h-5 w-5 text-primary" />
+                  Parties Involved
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid gap-6 sm:grid-cols-2">
+                  {/* Shipper */}
+                  <div className="rounded-lg border p-4 bg-white/50">
+                    <div className="mb-3 flex items-center gap-2">
+                      <Building2 className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-xs font-bold uppercase text-muted-foreground tracking-wider">Shipper (Merchant)</span>
+                    </div>
+                    <p className="font-bold text-lg text-foreground">{shipment.commercant?.company_name || shipment.commercant?.full_name}</p>
+                    <Separator className="my-3" />
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-sm">
+                        <Phone className="h-3.5 w-3.5 text-muted-foreground" />
+                        {shipment.commercant?.phone}
                       </div>
-                      <p className="font-semibold text-foreground">{shipment.shipper.name}</p>
-                      <p className="text-sm text-muted-foreground">NIF: {shipment.shipper.nif}</p>
-                      <Separator className="my-3" />
-                      <div className="space-y-2">
-                        <p className="text-sm text-foreground">{shipment.shipper.contact}</p>
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <Phone className="h-3 w-3" />
-                          {shipment.shipper.phone}
-                        </div>
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <Mail className="h-3 w-3" />
-                          {shipment.shipper.email}
-                        </div>
+                      <div className="flex items-center gap-2 text-sm">
+                        <Mail className="h-3.5 w-3.5 text-muted-foreground" />
+                        {shipment.commercant?.email}
                       </div>
-                    </motion.div>
-
-                    {/* Carrier */}
-                    <motion.div 
-                      className="rounded-lg border p-4"
-                      whileHover={{ y: -4 }}
-                      transition={{ type: "spring", stiffness: 300 }}
-                    >
-                      <div className="mb-3 flex items-center gap-2">
-                        <Truck className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-xs font-medium uppercase text-muted-foreground">Carrier</span>
-                      </div>
-                      <p className="font-semibold text-foreground">{shipment.carrier.name}</p>
-                      <p className="text-sm text-muted-foreground">{shipment.carrier.vehicleType}</p>
-                      <p className="text-sm text-muted-foreground">Plate: {shipment.carrier.plateNumber}</p>
-                      <Separator className="my-3" />
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <Phone className="h-3 w-3" />
-                          {shipment.carrier.phone}
-                        </div>
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <Mail className="h-3 w-3" />
-                          {shipment.carrier.email}
-                        </div>
-                      </div>
-                    </motion.div>
+                    </div>
                   </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-          </motion.div>
 
-          {/* Right Column - Timeline & Documents */}
-          <motion.div 
-            className="space-y-6"
-            initial="hidden"
-            animate="visible"
-            variants={staggerContainer}
-          >
-            {/* Timeline */}
-            <motion.div variants={fadeIn}>
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Clock className="h-5 w-5 text-primary" />
-                    Timeline
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="relative space-y-0">
-                    {shipment.timeline.map((item, index) => (
-                      <motion.div 
-                        key={index} 
-                        className="relative flex gap-4 pb-6 last:pb-0"
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 0.4 + index * 0.1 }}
-                      >
-                        {/* Line */}
-                        {index < shipment.timeline.length - 1 && (
-                          <motion.div 
-                            className={`absolute left-[11px] top-6 h-full w-0.5 ${
-                              item.completed ? "bg-primary" : "bg-border"
-                            }`}
-                            initial={{ scaleY: 0 }}
-                            animate={{ scaleY: 1 }}
-                            transition={{ delay: 0.5 + index * 0.1 }}
-                            style={{ originY: 0 }}
-                          />
-                        )}
-                        
-                        {/* Icon */}
-                        <motion.div 
-                          className="relative z-10 shrink-0"
-                          initial={{ scale: 0 }}
-                          animate={{ scale: 1 }}
-                          transition={{ type: "spring", stiffness: 300, delay: 0.4 + index * 0.1 }}
-                        >
-                          {item.completed ? (
-                            <CheckCircle2 className="h-6 w-6 text-primary" />
-                          ) : (
-                            <Circle className="h-6 w-6 text-muted-foreground" />
-                          )}
-                        </motion.div>
-
-                        {/* Content */}
-                        <div className="flex-1">
-                          <p className={`font-medium ${item.completed ? "text-foreground" : "text-muted-foreground"}`}>
-                            {item.event}
-                          </p>
-                          {item.timestamp && (
-                            <p className="text-xs text-muted-foreground">{item.timestamp}</p>
-                          )}
-                          {item.actor && (
-                            <p className="text-xs text-muted-foreground">by {item.actor}</p>
-                          )}
-                        </div>
-                      </motion.div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-
-            {/* Documents */}
-            <motion.div variants={fadeIn}>
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <FileText className="h-5 w-5 text-primary" />
-                    Documents
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {shipment.documents.map((doc, index) => (
-                      <motion.div 
-                        key={index}
-                        className="flex items-center justify-between rounded-lg border bg-muted/30 p-3"
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.6 + index * 0.1 }}
-                        whileHover={{ scale: 1.02 }}
-                      >
-                        <div className="flex items-center gap-3">
-                          <motion.div 
-                            className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10"
-                            whileHover={{ rotate: 10 }}
-                          >
-                            <FileText className="h-4 w-4 text-primary" />
-                          </motion.div>
-                          <div>
-                            <p className="text-sm font-medium text-foreground">{doc.name}</p>
-                            <p className="text-xs text-muted-foreground">{doc.uploadedAt}</p>
+                  {/* Carrier */}
+                  <div className="rounded-lg border p-4 bg-white/50">
+                    <div className="mb-3 flex items-center gap-2">
+                      <Truck className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-xs font-bold uppercase text-muted-foreground tracking-wider">Carrier (Driver)</span>
+                    </div>
+                    {shipment.camionneur ? (
+                      <>
+                        <p className="font-bold text-lg text-foreground">{shipment.camionneur.full_name}</p>
+                        <p className="text-sm text-muted-foreground">{shipment.vehicle?.vehicle_type?.replace('_', ' ')} • {shipment.vehicle?.plate_number}</p>
+                        <Separator className="my-3" />
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2 text-sm">
+                            <Phone className="h-3.5 w-3.5 text-muted-foreground" />
+                            {shipment.camionneur.phone}
                           </div>
                         </div>
-                        <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
-                          <Button variant="ghost" size="icon-sm">
-                            <Download className="h-4 w-4" />
-                            <span className="sr-only">Download {doc.name}</span>
-                          </Button>
-                        </motion.div>
-                      </motion.div>
-                    ))}
-
-                    {/* Pending Document */}
-                    <motion.div 
-                      className="rounded-lg border-2 border-dashed border-accent/50 bg-accent/5 p-4"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ delay: 0.8 }}
-                    >
-                      <div className="flex flex-col items-center gap-2 text-center">
-                        <motion.div
-                          animate={{ y: [0, -5, 0] }}
-                          transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
-                        >
-                          <FileText className="h-6 w-6 text-accent" />
-                        </motion.div>
-                        <p className="text-sm font-medium text-foreground">Bon de Livraison Signé</p>
-                        <p className="text-xs text-muted-foreground">Pending upload after delivery</p>
+                      </>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center py-6 text-center italic text-muted-foreground">
+                         <Clock className="h-6 w-6 mb-2 opacity-50" />
+                         <p className="text-sm">Waiting for carrier assignment...</p>
                       </div>
-                    </motion.div>
+                    )}
                   </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-          </motion.div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Right Column - Timeline & Documents */}
+          <div className="space-y-8">
+            {/* Timeline */}
+            <Card className="border-none shadow-md overflow-hidden">
+              <CardHeader className="bg-muted/30 border-b">
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Clock className="h-5 w-5 text-primary" />
+                  Timeline
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-6">
+                <div className="relative space-y-6 pl-5 border-l-2 border-primary/20 ml-2">
+                  {events && events.length > 0 ? (
+                    events.map((event) => (
+                      <div key={event.id} className="relative">
+                        <div className="absolute -left-[29px] flex h-4 w-4 items-center justify-center rounded-full bg-primary ring-4 ring-background">
+                          <div className="h-1.5 w-1.5 rounded-full bg-white" />
+                        </div>
+                        <p className="text-sm font-bold capitalize">{event.event_type.replace('_', ' ')}</p>
+                        <p className="text-[10px] text-muted-foreground font-medium uppercase">{new Date(event.created_at).toLocaleString('fr-DZ')}</p>
+                        <p className="mt-1 text-sm text-foreground/80 leading-relaxed">{event.description}</p>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="relative">
+                       <div className="absolute -left-[29px] flex h-4 w-4 items-center justify-center rounded-full bg-muted ring-4 ring-background" />
+                       <p className="text-sm text-muted-foreground italic">No events recorded yet</p>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Documents */}
+            <Card className="border-none shadow-md overflow-hidden">
+              <CardHeader className="bg-muted/30 border-b">
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <FileText className="h-5 w-5 text-primary" />
+                  Documents
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-6">
+                <div className="space-y-3">
+                  {documents && documents.length > 0 ? (
+                    documents.map((doc) => (
+                      <div key={doc.id} className="flex items-center justify-between rounded-lg border bg-muted/20 p-3 group hover:border-primary/50 transition-colors">
+                        <div className="flex items-center gap-3">
+                          <div className="h-9 w-9 rounded-lg bg-white flex items-center justify-center shadow-sm">
+                             <FileText className="h-5 w-5 text-primary" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-bold">{doc.file_name.length > 15 ? doc.file_name.slice(0, 15) + '...' : doc.file_name}</p>
+                            <p className="text-[10px] text-muted-foreground uppercase font-bold">{doc.document_type.replace('_', ' ')}</p>
+                          </div>
+                        </div>
+                        <Button variant="ghost" size="icon" asChild className="opacity-0 group-hover:opacity-100 transition-opacity">
+                          <a href={doc.file_url} target="_blank" rel="noopener noreferrer">
+                            <Download className="h-4 w-4" />
+                          </a>
+                        </Button>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-8 text-muted-foreground space-y-2">
+                       <FileText className="h-8 w-8 mx-auto opacity-20" />
+                       <p className="text-xs italic">No documents uploaded</p>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
     </div>
+  )
+}
+
+function Box(props: any) {
+  return (
+    <svg
+      {...props}
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" />
+      <path d="m3.3 7 8.7 5 8.7-5" />
+      <path d="M12 22V12" />
+    </svg>
   )
 }

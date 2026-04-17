@@ -32,11 +32,11 @@ export function Navbar() {
           <Link href="#faq" className="text-sm font-medium hover:underline">
             FAQ
           </Link>
-          <Link href="/login" className="text-sm font-medium hover:underline">
+          <Link href="#auth" className="text-sm font-medium hover:underline">
             Login
           </Link>
           <Link
-            href="/get-started"
+            href="#auth"
             className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90"
           >
             Get Started
@@ -71,14 +71,14 @@ export function Navbar() {
             FAQ
           </Link>
           <Link
-            href="/login"
+            href="#auth"
             className="block text-sm font-medium hover:underline"
             onClick={() => setMobileMenuOpen(false)}
           >
             Login
           </Link>
           <Link
-            href="/get-started"
+            href="#auth"
             className="inline-block rounded-md bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90"
             onClick={() => setMobileMenuOpen(false)}
           >

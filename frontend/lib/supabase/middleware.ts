@@ -36,7 +36,7 @@ export async function updateSession(request: NextRequest) {
   // Protect dashboard routes
   if (request.nextUrl.pathname.startsWith('/dashboard')) {
     if (!user) {
-      return NextResponse.redirect(new URL('/auth/login', request.url))
+      return NextResponse.redirect(new URL('/', request.url))
     }
 
     // Role-based redirection
@@ -49,13 +49,6 @@ export async function updateSession(request: NextRequest) {
     if (role === 'commercant' && !path.startsWith('/dashboard/commercant')) {
       return NextResponse.redirect(new URL('/dashboard/commercant', request.url))
     }
-  }
-
-  // Redirect logged-in users away from auth pages
-  if (user && (request.nextUrl.pathname.startsWith('/auth/login') || request.nextUrl.pathname.startsWith('/auth/signup'))) {
-    const role = user.user_metadata?.role
-    const dashboardPath = role === 'camionneur' ? '/dashboard/camionneur' : '/dashboard/commercant'
-    return NextResponse.redirect(new URL(dashboardPath, request.url))
   }
 
   return response

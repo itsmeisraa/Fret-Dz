@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,6 +11,9 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Navbar } from "@/components/Navbar";
 import { FieldGroup, Field, FieldLabel } from "@/components/ui/field";
+import { login, signup } from "@/app/auth/actions";
+import { useToast } from "@/components/ui/use-toast";
+import { useFormStatus } from "react-dom";
 import { 
   Truck, 
   Package, 
@@ -45,24 +48,40 @@ const slideIn = {
 };
 
 export default function LandingPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
+      <LandingPageContent />
+    </Suspense>
+  )
+}
+
+function LandingPageContent() {
   const router = useRouter();
   const [authMode, setAuthMode] = useState<"login" | "register">("login");
   const [registerType, setRegisterType] = useState<"commercant" | "camionneur">("commercant");
   const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
 
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    router.push("/dashboard/commercant");
-  };
+  const { toast } = useToast();
+  const searchParams = useSearchParams();
+  const error = searchParams.get('error');
+  const message = searchParams.get('message');
 
-  const handleRegister = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (registerType === "commercant") {
-      router.push("/dashboard/commercant");
-    } else {
-      router.push("/dashboard/camionneur");
+  useEffect(() => {
+    if (error) {
+      toast({
+        title: "Authentication Error",
+        description: decodeURIComponent(error),
+        variant: "destructive",
+      });
+      window.history.replaceState({}, '', '/');
+    } else if (message) {
+      toast({
+        title: "Success",
+        description: decodeURIComponent(message),
+      });
+      window.history.replaceState({}, '', '/');
     }
-  };
+  }, [error, message, toast]);
 
   const faqs = [
     {
@@ -129,7 +148,7 @@ export default function LandingPage() {
               <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                 <Button size="lg" className="bg-accent text-accent-foreground hover:bg-accent/90" asChild>
                   <Link href="#auth">
-                    Get a Quote
+                    Let's Start
                     <ChevronRight className="ml-2 h-4 w-4" />
                   </Link>
                 </Button>
@@ -217,7 +236,7 @@ export default function LandingPage() {
       </section>
 
       {/* Features */}
-      <section className="bg-secondary/30 py-20 sm:py-24">
+      <section id="auth" className="bg-secondary/30 py-20 sm:py-24">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="grid gap-12 lg:grid-cols-2 lg:items-center">
             <motion.div
@@ -281,7 +300,6 @@ export default function LandingPage() {
 
             {/* Auth Card */}
             <motion.div 
-              id="auth" 
               initial={{ opacity: 0, y: 40 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-100px" }}
@@ -305,48 +323,26 @@ export default function LandingPage() {
                     </TabsList>
 
                     <TabsContent value="login" className="mt-6">
-                      <form onSubmit={handleLogin} className="flex flex-col gap-4">
+                      <form action={login} className="flex flex-col gap-4">
                         <FieldGroup>
                           <Field>
                             <FieldLabel>Email</FieldLabel>
-                            <Input type="email" placeholder="vous@entreprise.dz" />
+                            <Input name="email" type="email" placeholder="vous@entreprise.dz" required />
                           </Field>
                           <Field>
                             <FieldLabel>Password</FieldLabel>
-                            <Input type="password" placeholder="••••••••" />
+                            <Input name="password" type="password" placeholder="••••••••" required />
                           </Field>
                         </FieldGroup>
                         <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                          <Button type="submit" className="mt-2 w-full">
+                          <SubmitButton className="mt-2 w-full">
                             Sign In
-                          </Button>
+                          </SubmitButton>
                         </motion.div>
                         <div className="flex flex-col gap-2 text-center">
-                          <Button variant="link" className="text-sm text-muted-foreground">
+                          <Button variant="link" className="text-sm text-muted-foreground p-0 h-auto">
                             Forgot your password?
                           </Button>
-                          <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
-                            <span>Demo:</span>
-                            <Button 
-                              type="button" 
-                              variant="link" 
-                              size="sm" 
-                              className="h-auto p-0 text-xs text-primary"
-                              onClick={() => router.push("/dashboard/commercant")}
-                            >
-                              Shipper
-                            </Button>
-                            <span>|</span>
-                            <Button 
-                              type="button" 
-                              variant="link" 
-                              size="sm" 
-                              className="h-auto p-0 text-xs text-primary"
-                              onClick={() => router.push("/dashboard/camionneur")}
-                            >
-                              Carrier
-                            </Button>
-                          </div>
                         </div>
                       </form>
                     </TabsContent>
@@ -389,7 +385,8 @@ export default function LandingPage() {
                         </motion.button>
                       </div>
 
-                      <form onSubmit={handleRegister} className="flex flex-col gap-4">
+                      <form action={signup} className="flex flex-col gap-4">
+                        <input type="hidden" name="role" value={registerType} />
                         <FieldGroup>
                           <AnimatePresence mode="wait">
                             {registerType === "commercant" ? (
@@ -403,11 +400,7 @@ export default function LandingPage() {
                               >
                                 <Field>
                                   <FieldLabel>Company Name</FieldLabel>
-                                  <Input placeholder="Your Business Name" />
-                                </Field>
-                                <Field>
-                                  <FieldLabel>NIF (Tax ID)</FieldLabel>
-                                  <Input placeholder="000000000000000" />
+                                  <Input name="company_name" placeholder="Your Business Name" required />
                                 </Field>
                               </motion.div>
                             ) : (
@@ -421,35 +414,32 @@ export default function LandingPage() {
                               >
                                 <Field>
                                   <FieldLabel>Full Name</FieldLabel>
-                                  <Input placeholder="Your Name" />
+                                  <Input name="full_name" placeholder="Your Name" required />
                                 </Field>
                                 <Field>
-                                  <FieldLabel>Vehicle Type</FieldLabel>
+                                  <FieldLabel>Vehicle Description</FieldLabel>
                                   <Input placeholder="e.g., Semi-Trailer, Box Truck" />
-                                </Field>
-                                <Field>
-                                  <FieldLabel>Permis de Conduire</FieldLabel>
-                                  <div className="flex items-center gap-2 rounded-md border border-dashed border-input bg-muted/50 p-3">
-                                    <Upload className="h-5 w-5 text-muted-foreground" />
-                                    <span className="text-sm text-muted-foreground">Upload license (PDF/JPG)</span>
-                                  </div>
                                 </Field>
                               </motion.div>
                             )}
                           </AnimatePresence>
                           <Field>
+                            <FieldLabel>Phone Number</FieldLabel>
+                            <Input name="phone" type="tel" placeholder="+213 5XX XX XX XX" required />
+                          </Field>
+                          <Field>
                             <FieldLabel>Email</FieldLabel>
-                            <Input type="email" placeholder="vous@entreprise.dz" />
+                            <Input name="email" type="email" placeholder="vous@entreprise.dz" required />
                           </Field>
                           <Field>
                             <FieldLabel>Password</FieldLabel>
-                            <Input type="password" placeholder="Create a password" />
+                            <Input name="password" type="password" placeholder="Create a password" required />
                           </Field>
                         </FieldGroup>
                         <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                          <Button type="submit" className="mt-2 w-full bg-accent text-accent-foreground hover:bg-accent/90">
+                          <SubmitButton className="mt-2 w-full bg-accent text-accent-foreground hover:bg-accent/90">
                             Create Account
-                          </Button>
+                          </SubmitButton>
                         </motion.div>
                       </form>
                     </TabsContent>
@@ -545,5 +535,19 @@ export default function LandingPage() {
         </div>
       </footer>
     </div>
+  );
+}
+
+function SubmitButton({ children, className }: { children: React.ReactNode, className?: string }) {
+  const { pending } = useFormStatus();
+  return (
+    <Button type="submit" className={className} disabled={pending}>
+      {pending ? (
+        <>
+          <span className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+          Processing...
+        </>
+      ) : children}
+    </Button>
   );
 }

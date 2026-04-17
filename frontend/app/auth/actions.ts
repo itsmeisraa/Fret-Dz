@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 export async function login(formData: FormData) {
   const supabase = await createClient()
@@ -16,6 +17,7 @@ export async function login(formData: FormData) {
   })
 
   if (error) {
+    console.error('Login Error:', error.message)
     return redirect('/?error=' + encodeURIComponent(error.message))
   }
 
@@ -40,7 +42,7 @@ export async function login(formData: FormData) {
 }
 
 export async function signup(formData: FormData) {
-  const supabase = await createClient()
+  const adminClient = await createAdminClient()
 
   const email = formData.get('email') as string
   const password = formData.get('password') as string
@@ -49,21 +51,38 @@ export async function signup(formData: FormData) {
   const phone = formData.get('phone') as string
   const companyName = formData.get('company_name') as string
 
-  const { error } = await supabase.auth.signUp({
+  const signupData = {
     email,
     password,
-    options: {
-      data: {
-        full_name: fullName,
-        phone: phone,
-        role: role,
-        company_name: companyName,
-      },
+    email_confirm: true, // Auto-confirm email to solve verification loops
+    user_metadata: {
+      full_name: fullName || '',
+      phone: phone || '',
+      role: role || 'commercant',
+      company_name: companyName || '',
     },
-  })
+  }
+
+  console.log('--- Admin Signup Attempt ---')
+  console.log('Email:', email)
+
+  const { data, error } = await adminClient.auth.admin.createUser(signupData)
 
   if (error) {
+    console.error('Admin Signup Error:', JSON.stringify(error, null, 2))
     return redirect('/?error=' + encodeURIComponent(error.message))
+  }
+
+  // AUTO-LOGIN: Now that the user is created and confirmed, log them in immediately
+  const supabase = await createClient()
+  const { error: loginError } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+  })
+
+  if (loginError) {
+    console.error('Auto-login Error:', loginError.message)
+    return redirect('/?message=' + encodeURIComponent("Account created! Please log in manually."))
   }
 
   revalidatePath('/', 'layout')

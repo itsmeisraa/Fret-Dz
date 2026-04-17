@@ -2,8 +2,9 @@
 
 import { useState } from "react"
 import Link from "next/link"
+import Image from "next/image"
 import { usePathname, useRouter } from "next/navigation"
-import { motion, AnimatePresence } from "framer-motion"
+import { motion, AnimatePresence, LayoutGroup } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import {
@@ -37,17 +38,17 @@ interface DashboardLayoutProps {
 }
 
 const commercantNavItems = [
-  { href: "/dashboard/commercant", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/dashboard/commercant/shipments/new", label: "New Shipment", icon: Package },
-  { href: "/dashboard/commercant/documents", label: "My Documents", icon: FileText },
-  { href: "/dashboard/commercant/settings", label: "Settings", icon: Settings },
+  { href: "/dashboard/commercant", label: "Dashboard", icon: LayoutDashboard, color: "text-blue-500" },
+  { href: "/dashboard/commercant/shipments/new", label: "New Shipment", icon: Package, color: "text-orange-500" },
+  { href: "/dashboard/commercant/documents", label: "My Documents", icon: FileText, color: "text-emerald-500" },
+  { href: "/dashboard/commercant/settings", label: "Settings", icon: Settings, color: "text-gray-400" },
 ]
 
 const camionneurNavItems = [
-  { href: "/dashboard/camionneur", label: "My Routes", icon: Route },
-  { href: "/dashboard/camionneur/current", label: "Current Job", icon: Package },
-  { href: "/dashboard/camionneur/availability", label: "Availability", icon: Calendar },
-  { href: "/dashboard/camionneur/payments", label: "Payment History", icon: CreditCard },
+  { href: "/dashboard/camionneur", label: "My Routes", icon: Route, color: "text-blue-500" },
+  { href: "/dashboard/camionneur/current", label: "Current Job", icon: Package, color: "text-orange-500" },
+  { href: "/dashboard/camionneur/availability", label: "Availability", icon: Calendar, color: "text-emerald-500" },
+  { href: "/dashboard/camionneur/payments", label: "Payment History", icon: CreditCard, color: "text-purple-500" },
 ]
 
 const sidebarVariants = {
@@ -101,12 +102,21 @@ export function DashboardLayout({ children, userType, userName }: DashboardLayou
       >
         {/* Logo */}
         <div className="flex h-16 items-center justify-between border-b border-sidebar-border px-4">
-          <motion.div whileHover={{ scale: 1.02 }}>
-            <Link href="/" className="flex items-center gap-2">
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-sidebar-primary">
-                <Truck className="h-5 w-5 text-sidebar-primary-foreground" />
+          <motion.div 
+            whileHover={{ scale: 1.05, rotate: -2 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            <Link href="/" className="flex items-center gap-3">
+              <div className="relative flex h-9 w-9 items-center justify-center rounded-xl bg-white shadow-sm ring-1 ring-sidebar-border overflow-hidden">
+                <Image
+                  src="/images/logo.png"
+                  alt="Fret-Dz Logo"
+                  width={24}
+                  height={24}
+                  className="h-6 w-auto object-contain"
+                />
               </div>
-              <span className="text-xl font-bold">Fret-Dz</span>
+              <span className="text-xl font-black tracking-tighter text-sidebar-foreground">Fret-Dz</span>
             </Link>
           </motion.div>
           <motion.button
@@ -120,7 +130,7 @@ export function DashboardLayout({ children, userType, userName }: DashboardLayou
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 space-y-1 p-4">
+        <nav className="flex-1 space-y-1.5 p-4">
           {navItems.map((item, index) => {
             const isActive = pathname === item.href
             return (
@@ -133,22 +143,25 @@ export function DashboardLayout({ children, userType, userName }: DashboardLayou
                 <Link
                   href={item.href}
                   className={cn(
-                    "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
+                    "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-300",
                     isActive
-                      ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                      ? "bg-primary/10 text-primary shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)]"
                       : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
                   )}
                 >
                   <motion.div
-                    whileHover={{ rotate: isActive ? 0 : 10 }}
-                    transition={{ type: "spring", stiffness: 300 }}
+                    whileHover={{ scale: 1.1, rotate: 5 }}
+                    className={cn(
+                      "flex h-8 w-8 items-center justify-center rounded-lg transition-colors",
+                      isActive ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20" : "bg-muted group-hover:bg-muted-foreground/10"
+                    )}
                   >
-                    <item.icon className="h-5 w-5" />
+                    <item.icon className="h-4.5 w-4.5" />
                   </motion.div>
                   {item.label}
                   {isActive && (
                     <motion.div
-                      className="ml-auto h-2 w-2 rounded-full bg-sidebar-primary"
+                      className="ml-auto h-1.5 w-1.5 rounded-full bg-primary shadow-[0_0_8px_rgba(var(--primary),0.6)]"
                       layoutId="activeIndicator"
                       initial={{ scale: 0 }}
                       animate={{ scale: 1 }}
@@ -184,21 +197,30 @@ export function DashboardLayout({ children, userType, userName }: DashboardLayou
       </motion.aside>
 
       {/* Desktop Sidebar (always visible) */}
-      <aside className="hidden w-64 flex-col bg-sidebar text-sidebar-foreground lg:flex">
+      <aside className="hidden w-64 flex-col bg-sidebar text-sidebar-foreground lg:flex shadow-[4px_0_24px_rgba(0,0,0,0.02)]">
         {/* Logo */}
-        <div className="flex h-16 items-center border-b border-sidebar-border px-4">
-          <motion.div whileHover={{ scale: 1.02 }}>
-            <Link href="/" className="flex items-center gap-2">
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-sidebar-primary">
-                <Truck className="h-5 w-5 text-sidebar-primary-foreground" />
+        <div className="flex h-16 items-center border-b border-sidebar-border px-5">
+          <motion.div 
+            whileHover={{ scale: 1.05, rotate: -2 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            <Link href="/" className="flex items-center gap-3">
+              <div className="relative flex h-9 w-9 items-center justify-center rounded-xl bg-white shadow-sm ring-1 ring-zinc-200 overflow-hidden">
+                <Image
+                  src="/images/logo.png"
+                  alt="Fret-Dz Logo"
+                  width={24}
+                  height={24}
+                  className="h-6 w-auto object-contain"
+                />
               </div>
-              <span className="text-xl font-bold">Fret-Dz</span>
+              <span className="text-xl font-black tracking-tighter text-sidebar-foreground">Fret-Dz</span>
             </Link>
           </motion.div>
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 space-y-1 p-4">
+        <nav className="flex-1 space-y-1.5 p-4">
           {navItems.map((item, index) => {
             const isActive = pathname === item.href
             return (
@@ -207,24 +229,34 @@ export function DashboardLayout({ children, userType, userName }: DashboardLayou
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: index * 0.05 }}
-                whileHover={{ x: 4 }}
               >
                 <Link
                   href={item.href}
                   className={cn(
-                    "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
+                    "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-300",
                     isActive
-                      ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                      ? "bg-primary/10 text-primary shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)]"
                       : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
                   )}
                 >
                   <motion.div
-                    whileHover={{ rotate: isActive ? 0 : 10 }}
-                    transition={{ type: "spring", stiffness: 300 }}
+                    whileHover={{ scale: 1.1, rotate: 5 }}
+                    className={cn(
+                      "flex h-8 w-8 items-center justify-center rounded-lg transition-colors",
+                      isActive ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20" : "bg-muted/50 group-hover:bg-muted-foreground/10"
+                    )}
                   >
-                    <item.icon className="h-5 w-5" />
+                    <item.icon className="h-4.5 w-4.5" />
                   </motion.div>
                   {item.label}
+                  {isActive && (
+                    <motion.div
+                      className="ml-auto h-1.5 w-1.5 rounded-full bg-primary"
+                      layoutId="activeIndicatorDesktop"
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                    />
+                  )}
                 </Link>
               </motion.div>
             )
@@ -282,14 +314,6 @@ export function DashboardLayout({ children, userType, userName }: DashboardLayou
             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
               <Button variant="ghost" size="icon" className="relative">
                 <Bell className="h-5 w-5" />
-                <motion.span 
-                  className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-accent text-[10px] font-bold text-accent-foreground"
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ type: "spring", stiffness: 500, delay: 0.5 }}
-                >
-                  3
-                </motion.span>
               </Button>
             </motion.div>
 
