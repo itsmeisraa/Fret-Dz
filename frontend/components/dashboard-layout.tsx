@@ -4,11 +4,10 @@ import { useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { usePathname, useRouter } from "next/navigation"
-import { motion, AnimatePresence, LayoutGroup } from "framer-motion"
+import { motion, AnimatePresence } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import {
-  Truck,
   LayoutDashboard,
   Package,
   FileText,
@@ -89,42 +88,24 @@ export function DashboardLayout({ children, userType, userName }: DashboardLayou
         )}
       </AnimatePresence>
 
-      {/* Sidebar */}
+      {/* Mobile Sidebar (visible only on small screens) */}
       <motion.aside
-        className={cn(
-          "fixed inset-y-0 left-0 z-50 flex w-64 flex-col bg-sidebar text-sidebar-foreground lg:static",
-          "lg:translate-x-0"
-        )}
+        className="fixed inset-y-0 left-0 z-50 flex w-64 flex-col bg-sidebar text-sidebar-foreground lg:hidden"
         variants={sidebarVariants}
         initial="closed"
         animate={sidebarOpen ? "open" : "closed"}
-        style={{ translateX: 0 }}
       >
         {/* Logo */}
         <div className="flex h-16 items-center justify-between border-b border-sidebar-border px-4">
-          <motion.div 
-            whileHover={{ scale: 1.05, rotate: -2 }}
-            whileTap={{ scale: 0.95 }}
-          >
+          <motion.div whileHover={{ scale: 1.05, rotate: -2 }} whileTap={{ scale: 0.95 }}>
             <Link href="/" className="flex items-center gap-3">
               <div className="relative flex h-9 w-9 items-center justify-center rounded-xl bg-white shadow-sm ring-1 ring-sidebar-border overflow-hidden">
-                <Image
-                  src="/images/logo.png"
-                  alt="Fret-Dz Logo"
-                  width={24}
-                  height={24}
-                  className="h-6 w-auto object-contain"
-                />
+                <Image src="/images/logo.png" alt="Fret-Dz Logo" width={24} height={24} className="h-6 w-auto object-contain" />
               </div>
               <span className="text-xl font-black tracking-tighter text-sidebar-foreground">Fret-Dz</span>
             </Link>
           </motion.div>
-          <motion.button
-            className="rounded-md p-1 hover:bg-sidebar-accent lg:hidden"
-            onClick={() => setSidebarOpen(false)}
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-          >
+          <motion.button className="rounded-md p-1 hover:bg-sidebar-accent" onClick={() => setSidebarOpen(false)} whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
             <X className="h-5 w-5" />
           </motion.button>
         </div>
@@ -134,40 +115,13 @@ export function DashboardLayout({ children, userType, userName }: DashboardLayou
           {navItems.map((item, index) => {
             const isActive = pathname === item.href
             return (
-              <motion.div
-                key={item.href}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: index * 0.05 }}
-              >
-                <Link
-                  href={item.href}
-                  className={cn(
-                    "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-300",
-                    isActive
-                      ? "bg-primary/10 text-primary shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)]"
-                      : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
-                  )}
-                >
-                  <motion.div
-                    whileHover={{ scale: 1.1, rotate: 5 }}
-                    className={cn(
-                      "flex h-8 w-8 items-center justify-center rounded-lg transition-colors",
-                      isActive ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20" : "bg-muted group-hover:bg-muted-foreground/10"
-                    )}
-                  >
+              <motion.div key={item.href} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: index * 0.05 }}>
+                <Link href={item.href} className={cn("group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-300", isActive ? "bg-primary/10 text-primary" : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground")}>
+                  <motion.div whileHover={{ scale: 1.1, rotate: 5 }} className={cn("flex h-8 w-8 items-center justify-center rounded-lg transition-colors", isActive ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20" : "bg-muted/50 group-hover:bg-muted-foreground/10")}>
                     <item.icon className="h-4.5 w-4.5" />
                   </motion.div>
                   {item.label}
-                  {isActive && (
-                    <motion.div
-                      className="ml-auto h-1.5 w-1.5 rounded-full bg-primary shadow-[0_0_8px_rgba(var(--primary),0.6)]"
-                      layoutId="activeIndicator"
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      transition={{ type: "spring", stiffness: 300 }}
-                    />
-                  )}
+                  {isActive && <motion.div className="ml-auto h-1.5 w-1.5 rounded-full bg-primary shadow-[0_0_8px_rgba(var(--primary),0.6)]" layoutId="activeIndicator" initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 300 }} />}
                 </Link>
               </motion.div>
             )
@@ -175,17 +129,9 @@ export function DashboardLayout({ children, userType, userName }: DashboardLayou
         </nav>
 
         {/* User Section */}
-        <motion.div 
-          className="border-t border-sidebar-border p-4"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.3 }}
-        >
+        <motion.div className="border-t border-sidebar-border p-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}>
           <div className="flex items-center gap-3">
-            <motion.div 
-              className="flex h-10 w-10 items-center justify-center rounded-full bg-sidebar-accent"
-              whileHover={{ scale: 1.05 }}
-            >
+            <motion.div className="flex h-10 w-10 items-center justify-center rounded-full bg-sidebar-accent" whileHover={{ scale: 1.05 }}>
               <User className="h-5 w-5 text-sidebar-accent-foreground" />
             </motion.div>
             <div className="flex-1 truncate">
@@ -196,23 +142,14 @@ export function DashboardLayout({ children, userType, userName }: DashboardLayou
         </motion.div>
       </motion.aside>
 
-      {/* Desktop Sidebar (always visible) */}
+      {/* Desktop Sidebar (always visible on large screens) */}
       <aside className="hidden w-64 flex-col bg-sidebar text-sidebar-foreground lg:flex shadow-[4px_0_24px_rgba(0,0,0,0.02)]">
         {/* Logo */}
         <div className="flex h-16 items-center border-b border-sidebar-border px-5">
-          <motion.div 
-            whileHover={{ scale: 1.05, rotate: -2 }}
-            whileTap={{ scale: 0.95 }}
-          >
+          <motion.div whileHover={{ scale: 1.05, rotate: -2 }} whileTap={{ scale: 0.95 }}>
             <Link href="/" className="flex items-center gap-3">
               <div className="relative flex h-9 w-9 items-center justify-center rounded-xl bg-white shadow-sm ring-1 ring-zinc-200 overflow-hidden">
-                <Image
-                  src="/images/logo.png"
-                  alt="Fret-Dz Logo"
-                  width={24}
-                  height={24}
-                  className="h-6 w-auto object-contain"
-                />
+                <Image src="/images/logo.png" alt="Fret-Dz Logo" width={24} height={24} className="h-6 w-auto object-contain" />
               </div>
               <span className="text-xl font-black tracking-tighter text-sidebar-foreground">Fret-Dz</span>
             </Link>
@@ -224,39 +161,13 @@ export function DashboardLayout({ children, userType, userName }: DashboardLayou
           {navItems.map((item, index) => {
             const isActive = pathname === item.href
             return (
-              <motion.div
-                key={item.href}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: index * 0.05 }}
-              >
-                <Link
-                  href={item.href}
-                  className={cn(
-                    "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-300",
-                    isActive
-                      ? "bg-primary/10 text-primary shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)]"
-                      : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
-                  )}
-                >
-                  <motion.div
-                    whileHover={{ scale: 1.1, rotate: 5 }}
-                    className={cn(
-                      "flex h-8 w-8 items-center justify-center rounded-lg transition-colors",
-                      isActive ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20" : "bg-muted/50 group-hover:bg-muted-foreground/10"
-                    )}
-                  >
+              <motion.div key={item.href} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: index * 0.05 }}>
+                <Link href={item.href} className={cn("group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-300", isActive ? "bg-primary/10 text-primary" : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground")}>
+                  <motion.div whileHover={{ scale: 1.1, rotate: 5 }} className={cn("flex h-8 w-8 items-center justify-center rounded-lg transition-colors", isActive ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20" : "bg-muted/50 group-hover:bg-muted-foreground/10")}>
                     <item.icon className="h-4.5 w-4.5" />
                   </motion.div>
                   {item.label}
-                  {isActive && (
-                    <motion.div
-                      className="ml-auto h-1.5 w-1.5 rounded-full bg-primary"
-                      layoutId="activeIndicatorDesktop"
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                    />
-                  )}
+                  {isActive && <motion.div className="ml-auto h-1.5 w-1.5 rounded-full bg-primary" layoutId="activeIndicatorDesktop" initial={{ scale: 0 }} animate={{ scale: 1 }} />}
                 </Link>
               </motion.div>
             )
@@ -264,17 +175,9 @@ export function DashboardLayout({ children, userType, userName }: DashboardLayou
         </nav>
 
         {/* User Section */}
-        <motion.div 
-          className="border-t border-sidebar-border p-4"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.3 }}
-        >
+        <motion.div className="border-t border-sidebar-border p-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}>
           <div className="flex items-center gap-3">
-            <motion.div 
-              className="flex h-10 w-10 items-center justify-center rounded-full bg-sidebar-accent"
-              whileHover={{ scale: 1.05 }}
-            >
+            <motion.div className="flex h-10 w-10 items-center justify-center rounded-full bg-sidebar-accent" whileHover={{ scale: 1.05 }}>
               <User className="h-5 w-5 text-sidebar-accent-foreground" />
             </motion.div>
             <div className="flex-1 truncate">
@@ -288,25 +191,13 @@ export function DashboardLayout({ children, userType, userName }: DashboardLayou
       {/* Main Content */}
       <div className="flex flex-1 flex-col">
         {/* Top Navigation */}
-        <motion.header 
-          className="sticky top-0 z-30 flex h-16 items-center justify-between border-b bg-card px-4 lg:px-6"
-          initial={{ y: -60 }}
-          animate={{ y: 0 }}
-          transition={{ type: "spring", stiffness: 100, damping: 20 }}
-        >
-          <motion.button
-            className="rounded-md p-2 hover:bg-muted lg:hidden"
-            onClick={() => setSidebarOpen(true)}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-          >
+        <motion.header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b bg-card px-4 lg:px-6" initial={{ y: -60 }} animate={{ y: 0 }} transition={{ type: "spring", stiffness: 100, damping: 20 }}>
+          <motion.button className="rounded-md p-2 hover:bg-muted lg:hidden" onClick={() => setSidebarOpen(true)} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
             <Menu className="h-5 w-5" />
           </motion.button>
 
           <div className="hidden lg:block">
-            <h1 className="text-lg font-semibold text-foreground">
-              Welcome back, <span className="text-primary">{userName}</span>
-            </h1>
+            <h1 className="text-lg font-semibold text-foreground">Welcome back, <span className="text-primary">{userName}</span></h1>
           </div>
 
           <div className="flex items-center gap-3">
@@ -349,12 +240,7 @@ export function DashboardLayout({ children, userType, userName }: DashboardLayou
         </motion.header>
 
         {/* Page Content */}
-        <motion.main 
-          className="flex-1 p-4 lg:p-6"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.2 }}
-        >
+        <motion.main className="flex-1 p-4 lg:p-6" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}>
           {children}
         </motion.main>
       </div>
