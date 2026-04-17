@@ -133,15 +133,26 @@ ALTER TABLE public.shipment_applications ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ratings ENABLE ROW LEVEL SECURITY;
 
 -- Profiles RLS Policies
+DROP POLICY IF EXISTS "Users can view all profiles" ON public.profiles;
+DROP POLICY IF EXISTS "Users can update own profile" ON public.profiles;
+DROP POLICY IF EXISTS "Users can insert own profile" ON public.profiles;
 CREATE POLICY "Users can view all profiles" ON public.profiles FOR SELECT USING (true);
 CREATE POLICY "Users can update own profile" ON public.profiles FOR UPDATE USING (auth.uid() = id);
 CREATE POLICY "Users can insert own profile" ON public.profiles FOR INSERT WITH CHECK (auth.uid() = id);
 
 -- Vehicles RLS Policies
+DROP POLICY IF EXISTS "Anyone can view vehicles" ON public.vehicles;
+DROP POLICY IF EXISTS "Camionneurs can manage own vehicles" ON public.vehicles;
 CREATE POLICY "Anyone can view vehicles" ON public.vehicles FOR SELECT USING (true);
 CREATE POLICY "Camionneurs can manage own vehicles" ON public.vehicles FOR ALL USING (auth.uid() = owner_id);
 
 -- Shipments RLS Policies
+DROP POLICY IF EXISTS "Commercants can view own shipments" ON public.shipments;
+DROP POLICY IF EXISTS "Camionneurs can view assigned shipments" ON public.shipments;
+DROP POLICY IF EXISTS "Camionneurs can view available shipments" ON public.shipments;
+DROP POLICY IF EXISTS "Commercants can create shipments" ON public.shipments;
+DROP POLICY IF EXISTS "Commercants can update own shipments" ON public.shipments;
+DROP POLICY IF EXISTS "Camionneurs can update assigned shipments" ON public.shipments;
 CREATE POLICY "Commercants can view own shipments" ON public.shipments FOR SELECT USING (auth.uid() = commercant_id);
 CREATE POLICY "Camionneurs can view assigned shipments" ON public.shipments FOR SELECT USING (auth.uid() = camionneur_id);
 CREATE POLICY "Camionneurs can view available shipments" ON public.shipments FOR SELECT USING (status = 'pending' AND camionneur_id IS NULL);
@@ -150,6 +161,8 @@ CREATE POLICY "Commercants can update own shipments" ON public.shipments FOR UPD
 CREATE POLICY "Camionneurs can update assigned shipments" ON public.shipments FOR UPDATE USING (auth.uid() = camionneur_id);
 
 -- Shipment Events RLS Policies
+DROP POLICY IF EXISTS "View events for accessible shipments" ON public.shipment_events;
+DROP POLICY IF EXISTS "Users can create events" ON public.shipment_events;
 CREATE POLICY "View events for accessible shipments" ON public.shipment_events FOR SELECT USING (
   EXISTS (
     SELECT 1 FROM public.shipments s 
@@ -160,6 +173,8 @@ CREATE POLICY "View events for accessible shipments" ON public.shipment_events F
 CREATE POLICY "Users can create events" ON public.shipment_events FOR INSERT WITH CHECK (auth.uid() = created_by);
 
 -- Documents RLS Policies
+DROP POLICY IF EXISTS "View documents for accessible shipments" ON public.documents;
+DROP POLICY IF EXISTS "Users can upload documents" ON public.documents;
 CREATE POLICY "View documents for accessible shipments" ON public.documents FOR SELECT USING (
   EXISTS (
     SELECT 1 FROM public.shipments s 
@@ -170,6 +185,11 @@ CREATE POLICY "View documents for accessible shipments" ON public.documents FOR 
 CREATE POLICY "Users can upload documents" ON public.documents FOR INSERT WITH CHECK (auth.uid() = uploaded_by);
 
 -- Shipment Applications RLS Policies
+DROP POLICY IF EXISTS "Commercants can view applications for their shipments" ON public.shipment_applications;
+DROP POLICY IF EXISTS "Camionneurs can view own applications" ON public.shipment_applications;
+DROP POLICY IF EXISTS "Camionneurs can create applications" ON public.shipment_applications;
+DROP POLICY IF EXISTS "Camionneurs can update own applications" ON public.shipment_applications;
+DROP POLICY IF EXISTS "Commercants can update applications for their shipments" ON public.shipment_applications;
 CREATE POLICY "Commercants can view applications for their shipments" ON public.shipment_applications FOR SELECT USING (
   EXISTS (SELECT 1 FROM public.shipments s WHERE s.id = shipment_id AND s.commercant_id = auth.uid())
 );
@@ -181,6 +201,8 @@ CREATE POLICY "Commercants can update applications for their shipments" ON publi
 );
 
 -- Ratings RLS Policies
+DROP POLICY IF EXISTS "Anyone can view ratings" ON public.ratings;
+DROP POLICY IF EXISTS "Users can create ratings" ON public.ratings;
 CREATE POLICY "Anyone can view ratings" ON public.ratings FOR SELECT USING (true);
 CREATE POLICY "Users can create ratings" ON public.ratings FOR INSERT WITH CHECK (auth.uid() = rated_by);
 
@@ -224,9 +246,16 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- Add updated_at triggers
+DROP TRIGGER IF EXISTS update_profiles_updated_at ON public.profiles;
 CREATE TRIGGER update_profiles_updated_at BEFORE UPDATE ON public.profiles FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+DROP TRIGGER IF EXISTS update_vehicles_updated_at ON public.vehicles;
 CREATE TRIGGER update_vehicles_updated_at BEFORE UPDATE ON public.vehicles FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+DROP TRIGGER IF EXISTS update_shipments_updated_at ON public.shipments;
 CREATE TRIGGER update_shipments_updated_at BEFORE UPDATE ON public.shipments FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+DROP TRIGGER IF EXISTS update_applications_updated_at ON public.shipment_applications;
 CREATE TRIGGER update_applications_updated_at BEFORE UPDATE ON public.shipment_applications FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
 -- Create function to generate reference number
@@ -239,6 +268,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- Add reference number trigger
+DROP TRIGGER IF EXISTS generate_shipment_reference ON public.shipments;
 CREATE TRIGGER generate_shipment_reference BEFORE INSERT ON public.shipments FOR EACH ROW EXECUTE FUNCTION public.generate_reference_number();
 
 -- Create indexes for better performance

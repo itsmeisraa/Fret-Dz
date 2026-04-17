@@ -67,8 +67,9 @@ export function DashboardLayout({ children, userType, userName }: DashboardLayou
   
   const navItems = userType === "commercant" ? commercantNavItems : camionneurNavItems
 
-  const handleLogout = () => {
-    router.push("/")
+  const handleLogout = async () => {
+    const { signout } = await import("@/app/auth/actions")
+    await signout()
   }
 
   return (
