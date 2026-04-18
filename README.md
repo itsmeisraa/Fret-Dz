@@ -122,8 +122,7 @@ Each push triggers a new deployment.
 ## 📁 Project Structure
 
 ```
-fret-dz/
-├── frontend/               # Dossier principal du projet Next.js
+fret-dz/               # Dossier principal du projet Next.js
 │   ├── app/                # App Router (Next.js 14)
 │   │   ├── auth/           # 🔄 [À COMPLÉTER] Page de connexion / Inscription
 │   │   ├── dashboard/      # 🚧 [EN COURS] Routes protégées du tableau de bord
