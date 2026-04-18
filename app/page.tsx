@@ -99,6 +99,10 @@ function LandingPageContent() {
     {
       q: "What is a Bon de Livraison?",
       a: "The Bon de Livraison (Delivery Note) is the official document confirming successful delivery. Carriers upload a signed copy through the app, which is stored in your documents section."
+    },
+      {
+      q: "who created this website",
+      a: " a cool girl, she is called israa Chiheb "
     }
   ];
 
