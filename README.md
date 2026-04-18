@@ -182,6 +182,7 @@ Fret-DZ can handle growth from a few users to thousands without infrastructure c
 
 ### ✔️ Done
 
+* Authentification (Connexion / Inscription)
 * Structure du projet Next.js 14 avec App Router
 * Configuration de Tailwind CSS et shadcn/ui
 * Thème clair/sombre avec next-themes
@@ -191,7 +192,6 @@ Fret-DZ can handle growth from a few users to thousands without infrastructure c
 
 ### 🚧 In Progress
 
-* Authentification (Connexion / Inscription) — les routes sont définies mais la logique n'est pas encore implémentée
 * Dashboard Commerçant — interface pour créer et suivre les expéditions
 * Dashboard Transporteur — interface pour gérer les offres de transport
 * Page Expéditions — liste et suivi des expéditions
