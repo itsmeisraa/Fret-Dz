@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import {
   ArrowLeft, Truck, MapPin, Package,
   CheckCircle, Clock, Banknote, Loader2, ShieldCheck,
-  Weight, CalendarDays, ChevronRight,
+   CalendarDays, ChevronRight,
 } from "lucide-react";
 
 interface Expedition {
@@ -236,7 +236,7 @@ export default function PaymentPage() {
                 {expedition.weight_kg && (
                   <div className="flex items-center gap-3">
                     <div className="h-8 w-8 rounded-lg bg-purple-50 flex items-center justify-center flex-shrink-0">
-                      <Weight className="h-4 w-4 text-purple-600" />
+                      <Package className="h-4 w-4 text-purple-600" />
                     </div>
                     <div className="flex-1 flex justify-between items-center">
                       <span className="text-sm text-gray-500">Poids</span>
