@@ -180,4 +180,4 @@ If you find this project interesting or useful, consider giving it a star ⭐ �
 
 ---
 
-*Built with ❤️ in Algeria 🇩🇿 with Chiheb israa *
+*Built with ❤️ in Algeria 🇩🇿 by Chiheb israa *
